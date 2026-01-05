@@ -55,6 +55,7 @@ NOTE: Colette requires a GPU with at least 24GB of VRAM to run the default model
 Also the default config file is `vrag_default_lite.json` which is designed to run on 24GB VRAM GPUs. If you have multiples GPUs, you can try `vrag_default.json` which uses larger models and should provide better results and also needs multiple GPUs
 
 ### Docker (recommended)
+
 Easiest way to get started uses Docker. If you with to install from sources, see [Developer Setup](https://colette.chat/doc/developers/setup.html)
 
 1. Pull the Docker image
@@ -98,13 +99,82 @@ docker run --gpus all --user $(id -u):$(id -g) \
 
 ### Activate `venv_colette` for Command line & Developer Setup (Python API)
 
-1. Clone the repo:
+#### (Debian 13) Ensure that your Python environment is complete
+
+1) System libraries
+
+You'll need the following libraries in order to build all dependencies
+
+```
+sudo apt install -y libffi-dev build-essential zlib1g-dev libssl-dev libbz2-dev \
+  libreadline-dev libsqlite3-dev liblzma-dev tk-dev uuid-dev \
+  libncursesw5-dev xz-utils
+```
+
+2) (recommended) Pyenv + switch to 3.12.1
+
+Pyenv allows you to run multiple python environments. This is desirable because colette pins specific libraries that aren't necessarily buildable with the latest version of python. 
+
+```
+curl -fsSL https://pyenv.run | bash
+```
+
+You might have to follow the installer instructions to set up pyenv in your .bashrc (or equivalent)
+
+You can now switch to Python 3.12.1 with the following commands
+
+```
+pyenv install 3.12.1
+pyenv local 3.12.1
+```
+
+3) Install NVCC + GCC 
+
+You need NVCC installed (for multiple reasons, one being that it will tell the `create_venv_colette.sh` script which version of CUDA to use; the script could infer it from `nvidia-smi` but the value obtained that way might be too recent, the wheels might not have been built yet)
+
+
+```
+# only if you don't have the nvidia repo installed, which is unlikely if you managed to get `nvidia-smi` working
+cd /tmp 
+wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt update
+cd -
+```
+
+```
+sudo apt install -y cuda-toolkit-12-8 (or your preferred version)
+``` 
+
+And you'll need to update your `.bashrc` accordingly: 
+
+```
+# pick the one you installed:
+export CUDA_HOME=/usr/local/cuda-12.8
+
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+```
+
+We also need to downgrade/pin GCC:
+
+```
+sudo apt update
+sudo apt install -y gcc-13 g++-13
+export CC=/usr/bin/gcc-13
+export CXX=/usr/bin/g++-13
+export CUDAHOSTCXX=/usr/bin/g++-13
+export NVCC_FLAGS="--allow-unsupported-compiler"
+```
+
+
+#### Clone the repo:
 
 ```bash
 git clone https://github.com/jolibrain/colette.git
 ```
 
-2. Create a virtual environment and install dependencies
+#### Create a virtual environment and install dependencies
 
 ```bash
 cd colette
